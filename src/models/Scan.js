@@ -1,6 +1,7 @@
-import {Schema, model} from 'mongoose';
+import pkg from 'mongoose';
+const {Schema, model} = pkg;
 
-const ScanSchema = Schema({
+const scanSchema = Schema({
   id: {
     type: Schema.Types.ObjectId,
   },
@@ -14,4 +15,4 @@ const ScanSchema = Schema({
   }
 });
 
-export default model("Scan", ScanSchema);
+export default model("Scan", scanSchema);

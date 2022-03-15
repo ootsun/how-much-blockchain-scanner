@@ -10,12 +10,7 @@ if (!MONGODB_URI) {
 export async function connectDb() {
   log.info('Initializing database connection...');
   try {
-    await mongoose.connect(MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-      useCreateIndex: true,
-      useFindAndModify: false
-    });
+    await mongoose.connect(MONGODB_URI);
     log.info('Initializing database connection done.');
     return true;
   } catch (e) {

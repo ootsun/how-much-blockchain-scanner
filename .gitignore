@@ -3,3 +3,4 @@ logs
 .idea
 nodemon.json
 *.iml
+.env

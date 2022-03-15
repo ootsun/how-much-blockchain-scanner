@@ -1,3 +1,6 @@
+import {provider} from './ethereumUtils.js';
+import {ethers} from 'ethers';
+
 export function contractIsAProxy(methods, iface) {
   if (!methods) {
     methods = Object.values(iface.functions).map(f => f.name);

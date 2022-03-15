@@ -1,8 +1,9 @@
+import 'dotenv/config';
 import {ethers} from 'ethers';
 import axios from 'axios';
-import log from 'logger.js';
-import {contractIsAProxy, getImplementationAddress} from 'ethereum/contractUtils.js';
-import {provider} from 'ethereum/ethereumUtils.js';
+import log from './logger.js';
+import {contractIsAProxy, getImplementationAddress} from './ethereum/contractUtils.js';
+import {provider} from './ethereum/ethereumUtils.js';
 import {connectDb} from './connectDB.js';
 import {findAllOperations, updateOperation} from './repositories/operation-repo.js';
 import {createScan, findLatestScan} from './repositories/scan-repo.js';
@@ -12,17 +13,18 @@ const ETHERSCAN_TOKEN_API = process.env.ETHERSCAN_TOKEN_API;
 
 if (!await connectDb()) {
   log.warn('Exiting program');
-  return;
+  process.exit(0);
 }
 
 let lastMinedBlock = null;
 
 try {
   const updated = await scan();
-  await process(updated);
+  await processUpdatedOperations(updated);
 } catch (e) {
   log.error(e);
   log.warn('Exiting program');
+  process.exit(0);
 }
 
 async function scan() {
@@ -37,7 +39,7 @@ async function scan() {
   log.debug(`From block ${lastMinedBlock} to ${latestPreviouslyScannedBlock} (${totalBlocksToScan} blocks)`);
   log.debug('Fetching latest blocks and transactions...');
   for (let currentBlockNumber = lastMinedBlock; currentBlockNumber > latestPreviouslyScannedBlock; currentBlockNumber--) {
-    log.debug(`Block #${currentBlockNumber} (${currentBlockNumber - latestPreviouslyScannedBlock + 1}/${totalBlocksToScan})`);
+    log.debug(`Block #${currentBlockNumber} (${totalBlocksToScan - (currentBlockNumber - latestPreviouslyScannedBlock) + 1}/${totalBlocksToScan})`);
     const block = await provider.getBlockWithTransactions(currentBlockNumber);
     log.debug(`${block.transactions.length} transactions in block`);
     for (const transaction of block.transactions) {
@@ -88,7 +90,7 @@ async function scan() {
   return updated;
 }
 
-async function process(updated) {
+async function processUpdatedOperations(updated) {
   log.debug('Processing collected data...')
   for (const operation of updated) {
     operation.minGasUsage = Math.min(...operation.lastGasUsages);

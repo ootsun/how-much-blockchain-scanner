@@ -1,7 +1,9 @@
-import {Schema, model} from 'mongoose';
+import pkg from 'mongoose';
+const {Schema, model} = pkg;
 import User from './User.js';
+import Project from './Project.js';
 
-const OperationSchema = Schema({
+const operationSchema = Schema({
   id: {
     type: Schema.Types.ObjectId,
   },
@@ -44,6 +46,6 @@ const OperationSchema = Schema({
   },
 });
 
-OperationSchema.index({ contractAddress: 1, functionName: 1 }, { unique: true });
+operationSchema.index({ contractAddress: 1, functionName: 1 }, { unique: true });
 
-export default model("Operation", OperationSchema);
+export default model("Operation", operationSchema);

@@ -1,7 +1,8 @@
-import {Schema, model} from 'mongoose';
+import pkg from 'mongoose';
+const {Schema, model} = pkg;
 import uniqueValidator from 'mongoose-unique-validator';
 
-const ProjectSchema = Schema({
+const projectSchema = Schema({
   id: {
     type: Schema.Types.ObjectId,
   },
@@ -25,6 +26,6 @@ const ProjectSchema = Schema({
   }
 });
 
-ProjectSchema.plugin(uniqueValidator);
+projectSchema.plugin(uniqueValidator);
 
-export default model("Project", ProjectSchema);
+export default model("Project", projectSchema);
