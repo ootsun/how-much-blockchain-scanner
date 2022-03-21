@@ -36,10 +36,10 @@ async function scan() {
   lastMinedBlock = await provider.getBlockNumber();
   const latestPreviouslyScannedBlock = latestScan?.latestBlock || lastMinedBlock - 100;
   const totalBlocksToScan = lastMinedBlock - latestPreviouslyScannedBlock;
-  log.debug(`From block ${lastMinedBlock} to ${latestPreviouslyScannedBlock} (${totalBlocksToScan} blocks)`);
+  log.debug(`From block ${latestPreviouslyScannedBlock} to ${lastMinedBlock} (${totalBlocksToScan} blocks)`);
   log.debug('Fetching latest blocks and transactions...');
-  for (let currentBlockNumber = lastMinedBlock; currentBlockNumber > latestPreviouslyScannedBlock; currentBlockNumber--) {
-    log.debug(`Block #${currentBlockNumber} (${totalBlocksToScan - (currentBlockNumber - latestPreviouslyScannedBlock) + 1}/${totalBlocksToScan})`);
+  for (let currentBlockNumber = latestPreviouslyScannedBlock + 1; currentBlockNumber === lastMinedBlock; currentBlockNumber++) {
+    log.debug(`Block #${currentBlockNumber} (${latestPreviouslyScannedBlock - currentBlockNumber}/${totalBlocksToScan})`);
     const block = await provider.getBlockWithTransactions(currentBlockNumber);
     log.debug(`${block.transactions.length} transactions in block`);
     for (const transaction of block.transactions) {
