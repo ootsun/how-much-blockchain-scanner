@@ -80,6 +80,8 @@ async function scan() {
         console.log(transaction)
         console.log(iface)
         throw e;
+      } finally {
+        await createScan(currentBlockNumber);
       }
     }
   }
@@ -98,7 +100,6 @@ async function processUpdatedOperations(updated) {
     operation.averageGasUsage = Math.round(operation.lastGasUsages.reduce((a, b) => a + b, 0) / operation.lastGasUsages.length);
     await updateOperation(operation);
   }
-  await createScan(lastMinedBlock);
   log.debug('Processing collected data done.')
 }
 
