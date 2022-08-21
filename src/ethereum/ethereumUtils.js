@@ -8,7 +8,7 @@ const POCKET_PORTAL_ID = process.env.POCKET_PORTAL_ID;
 let provider = null;
 
 export const getProvider = () => {
-  if(!provider) {
+  if (!provider) {
     provider = new ethers.providers.getDefaultProvider(null, {
       etherscan: ETHERSCAN_TOKEN_API,
       infura: INFURA_PROJECT_ID,
@@ -17,9 +17,4 @@ export const getProvider = () => {
     });
   }
   return provider;
-}
-
-export const transactionHasFailed = async (transaction) => {
-  const transactionReceipt = await getProvider().getTransactionReceipt(transaction.hash);
-  return transactionReceipt.status === 0;
 }

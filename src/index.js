@@ -1,10 +1,11 @@
 import 'dotenv/config';
 import log from './services/logger.js';
-import {getProvider, transactionHasFailed} from './ethereum/ethereumUtils.js';
+import {getProvider} from './ethereum/ethereumUtils.js';
 import {connectDb} from './services/connectDB.js';
 import {findAllOperations, updateOperation} from './repositories/operation-repo.js';
-import {findLatestScan} from './repositories/scan-repo.js';
-import {analyzeKnownOperation, analyzeUnknownOperation} from "./services/transaction-analyzer.js";
+import {createScan, findLatestScan} from './repositories/scan-repo.js';
+import {analyzeOperation} from "./services/transaction-analyzer.js";
+import {createFromTransaction} from "./services/project-creator.js";
 
 if (!await connectDb()) {
   log.warn('Exiting program');
@@ -38,36 +39,39 @@ async function scan() {
   for (let currentBlockNumber = latestPreviouslyScannedBlock + 1; currentBlockNumber <= lastMinedBlock; currentBlockNumber++) {
     remainingBlocksToProcess.push(currentBlockNumber);
   }
+  log.debug('Fetching latest blocks and transactions done.');
+
   const worker = async () => {
     while (true) {
       const currentBlockNumber = remainingBlocksToProcess.shift();
-      if(!currentBlockNumber) {
-        return;
-      }
-      log.debug(`Block #${currentBlockNumber} (${currentBlockNumber - latestPreviouslyScannedBlock}/${totalBlocksToScan})`);
-      const block = await provider.getBlockWithTransactions(currentBlockNumber);
-      log.debug(`${block.transactions.length} transactions in block`);
-      for (const transaction of block.transactions) {
-        if(await transactionHasFailed(transaction)) {
-          continue;
+      try {
+        if (!currentBlockNumber) {
+          return;
         }
-        try {
-          if (!operationsMap.has(transaction.to)) {
-            nbMatchingOperations += await analyzeUnknownOperation(transaction, operationsMap, updated, currentBlockNumber);
-          } else {
-            nbMatchingOperations += await analyzeKnownOperation(transaction, operationsMap, updated, currentBlockNumber);
+        log.debug(`Block #${currentBlockNumber} (${currentBlockNumber - latestPreviouslyScannedBlock}/${totalBlocksToScan})`);
+        const block = await provider.getBlockWithTransactions(currentBlockNumber);
+        log.debug(`${block.transactions.length} transactions in block`);
+        for (const transaction of block.transactions) {
+          try {
+            if (!operationsMap.has(transaction.to)) {
+              await createFromTransaction(transaction, operationsMap);
+            }
+            if (operationsMap.has(transaction.to)) {
+              nbMatchingOperations += await analyzeOperation(transaction, operationsMap, updated, currentBlockNumber);
+            }
+          } catch (e) {
+            log.error('An error occurred while analyzing an operation :');
+            log.error(e);
           }
-        } catch (e) {
-          log.error('An error occurred while analyzing an operation :');
-          log.error(e);
         }
+      } finally {
+        await createScan(currentBlockNumber);
       }
     }
   }
-  await Promise.all(new Array(10).fill(0).map(worker));
+  await Promise.all(new Array(20).fill(0).map(worker));
 
   log.debug(`${nbMatchingOperations} matching operations found`);
-  log.debug('Fetching latest blocks and transactions done.');
   log.debug('Scanning blockchain done.');
 
   return updated;
