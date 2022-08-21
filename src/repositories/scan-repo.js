@@ -7,3 +7,7 @@ export async function findLatestScan() {
 export async function createScan(lastMinedBlock) {
   return Scan.create({latestBlock: lastMinedBlock});
 }
+
+export const deleteOldestScans = async (lastProcessedBlock) => {
+  return Scan.deleteMany({latestBlock: {$lt: lastProcessedBlock}});
+}

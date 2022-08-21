@@ -3,9 +3,11 @@ import log from './services/logger.js';
 import {getProvider} from './ethereum/ethereumUtils.js';
 import {connectDb} from './services/connectDB.js';
 import {findAllOperations, updateOperation} from './repositories/operation-repo.js';
-import {createScan, findLatestScan} from './repositories/scan-repo.js';
+import {createScan, deleteOldestScans, findLatestScan} from './repositories/scan-repo.js';
 import {analyzeOperation} from "./services/transaction-analyzer.js";
-import {createFromTransaction} from "./services/project-creator.js";
+import {createFromTransaction} from "./services/project-factory.js";
+
+const NUMBER_OF_WORKERS = Number.parseInt(process.env.NUMBER_OF_WORKERS) || 20;
 
 if (!await connectDb()) {
   log.warn('Exiting program');
@@ -66,10 +68,11 @@ async function scan() {
         }
       } finally {
         await createScan(currentBlockNumber);
+        await deleteOldestScans(currentBlockNumber);
       }
     }
   }
-  await Promise.all(new Array(20).fill(0).map(worker));
+  await Promise.all(new Array(NUMBER_OF_WORKERS).fill(0).map(worker));
 
   log.debug(`${nbMatchingOperations} matching operations found`);
   log.debug('Scanning blockchain done.');

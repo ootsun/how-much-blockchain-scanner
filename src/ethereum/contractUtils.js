@@ -1,7 +1,10 @@
 import {getProvider} from './ethereumUtils.js';
 import {ethers} from 'ethers';
+import axios from "axios";
 
 const provider = getProvider();
+
+const ETHERSCAN_TOKEN_API = process.env.ETHERSCAN_TOKEN_API;
 
 export function contractIsAProxy(methods, iface) {
   if (!methods) {
@@ -23,3 +26,11 @@ export async function getImplementationAddress(contractAddress) {
   return address;
 }
 
+export const getInterfaceOfContract = async (contractAddress) => {
+  const res = await axios.get(`https://api.etherscan.io/api?module=contract&action=getabi&address=${contractAddress}&apikey=${ETHERSCAN_TOKEN_API}`);
+  if (res.data.message !== 'OK') {
+    return null;
+  }
+  let abi = JSON.parse(res.data.result);
+  return new ethers.utils.Interface(abi);
+}
