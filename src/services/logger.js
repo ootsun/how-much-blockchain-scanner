@@ -9,7 +9,7 @@ const logger = winston.createLogger({
             format: winston.format.combine(
                 winston.format.colorize(),
                 winston.format.timestamp({
-                    format: 'HH:mm:ss',
+                    format: 'HH:mm:ss:SSS',
                 }),
                 winston.format.printf(
                     (info) =>
@@ -32,7 +32,13 @@ function format(message) {
     if (errorLine.endsWith(')')) {
         errorLine = errorLine.slice(0, errorLine.length - 1);
     }
-    return errorLine + ' : ' + message;
+    if(message instanceof String) {
+        return errorLine + ' : ' + message;
+    } else if(message instanceof Error){
+        return `${errorLine} : ${message.message}\n${message.stack}`;
+    } else {
+        return errorLine + ' : ' + JSON.stringify(message);
+    }
 }
 
 const log = {
