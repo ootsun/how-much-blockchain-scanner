@@ -20,6 +20,10 @@ const projectSchema = Schema({
     required: true,
     unique: true
   },
+  symbol: {
+    type: String,
+    unique: true
+  },
   logoUrl: {
     type: String,
     required: true,
