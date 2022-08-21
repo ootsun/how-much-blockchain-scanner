@@ -35,7 +35,7 @@ export const createFromTransaction = async (transaction, operationsMap) => {
       return;
     }
     const logoUrl = await uploadLogo(res.logo, res.name);
-    const project = await createERC20Project(contractAddress, res.name, logoUrl);
+    const project = await createERC20Project(contractAddress, res.name, res.symbol, logoUrl);
     log.debug(`New project created '${project.name}'`);
 
     let implementationAddress = undefined;
