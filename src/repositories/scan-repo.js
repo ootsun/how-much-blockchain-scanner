@@ -9,5 +9,5 @@ export async function createScan(lastMinedBlock) {
 }
 
 export const deleteOldestScans = async (lastProcessedBlock) => {
-  return Scan.deleteMany({latestBlock: {$lt: lastProcessedBlock}});
+  return Scan.deleteMany({latestBlock: {$lt: lastProcessedBlock - 10}});
 }
