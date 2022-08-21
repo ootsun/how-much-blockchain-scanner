@@ -1,15 +1,10 @@
 import 'dotenv/config';
-import {ethers} from 'ethers';
-import axios from 'axios';
-import log from './logger.js';
-import {contractIsAProxy, getImplementationAddress} from './ethereum/contractUtils.js';
-import {provider} from './ethereum/ethereumUtils.js';
-import {connectDb} from './connectDB.js';
+import log from './services/logger.js';
+import {getProvider, transactionHasFailed} from './ethereum/ethereumUtils.js';
+import {connectDb} from './services/connectDB.js';
 import {findAllOperations, updateOperation} from './repositories/operation-repo.js';
-import {createScan, findLatestScan} from './repositories/scan-repo.js';
-
-const MAX_NUMBER_OF_GAS_USAGE_SAVED = Number.parseInt(process.env.MAX_NUMBER_OF_GAS_USAGE_SAVED);
-const ETHERSCAN_TOKEN_API = process.env.ETHERSCAN_TOKEN_API;
+import {findLatestScan} from './repositories/scan-repo.js';
+import {analyzeKnownOperation, analyzeUnknownOperation} from "./services/transaction-analyzer.js";
 
 if (!await connectDb()) {
   log.warn('Exiting program');
@@ -17,6 +12,7 @@ if (!await connectDb()) {
 }
 
 let lastMinedBlock = null;
+const provider = getProvider();
 
 try {
   const updated = await scan();
@@ -38,53 +34,38 @@ async function scan() {
   const totalBlocksToScan = lastMinedBlock - latestPreviouslyScannedBlock;
   log.debug(`From block ${latestPreviouslyScannedBlock} to ${lastMinedBlock} (${totalBlocksToScan} blocks)`);
   log.debug('Fetching latest blocks and transactions...');
+  const remainingBlocksToProcess = [];
   for (let currentBlockNumber = latestPreviouslyScannedBlock + 1; currentBlockNumber <= lastMinedBlock; currentBlockNumber++) {
-    log.debug(`Block #${currentBlockNumber} (${currentBlockNumber - latestPreviouslyScannedBlock}/${totalBlocksToScan})`);
-    const block = await provider.getBlockWithTransactions(currentBlockNumber);
-    log.debug(`${block.transactions.length} transactions in block`);
-    for (const transaction of block.transactions) {
-      if (!operationsMap.has(transaction.to)) {
-        continue;
+    remainingBlocksToProcess.push(currentBlockNumber);
+  }
+  const worker = async () => {
+    while (true) {
+      const currentBlockNumber = remainingBlocksToProcess.shift();
+      if(!currentBlockNumber) {
+        return;
       }
-      console.log('abi')
-      const res = await axios.get(`https://api.etherscan.io/api?module=contract&action=getabi&address=${transaction.to}&apikey=${ETHERSCAN_TOKEN_API}`);
-      if (res.data.message !== 'OK') {
-        continue;
-      }
-      let abi = JSON.parse(res.data.result);
-      let iface = new ethers.utils.Interface(abi);
-      try {
-        let implementationAddress = null;
-        if (contractIsAProxy(null, iface)) {
-          implementationAddress = await getImplementationAddress(transaction.to);
-          console.log('abi2')
-          const res = await axios.get(`https://api.etherscan.io/api?module=contract&action=getabi&address=${implementationAddress}&apikey=${ETHERSCAN_TOKEN_API}`);
-          if (res.data.message !== 'OK') {
-            continue;
-          }
-          abi = JSON.parse(res.data.result);
-          iface = new ethers.utils.Interface(abi);
+      log.debug(`Block #${currentBlockNumber} (${currentBlockNumber - latestPreviouslyScannedBlock}/${totalBlocksToScan})`);
+      const block = await provider.getBlockWithTransactions(currentBlockNumber);
+      log.debug(`${block.transactions.length} transactions in block`);
+      for (const transaction of block.transactions) {
+        if(await transactionHasFailed(transaction)) {
+          continue;
         }
-        const operation = findMatchingOperation(iface, transaction, operationsMap);
-        if (operation) {
-          const receipt = await provider.getTransactionReceipt(transaction.hash);
-          operation.lastGasUsages.unshift(receipt.gasUsed.toNumber());
-          operation.lastGasUsages.length = Math.min(operation.lastGasUsages.length, MAX_NUMBER_OF_GAS_USAGE_SAVED);
-          if (!updated.includes(operation)) {
-            updated.push(operation);
+        try {
+          if (!operationsMap.has(transaction.to)) {
+            nbMatchingOperations += await analyzeUnknownOperation(transaction, operationsMap, updated, currentBlockNumber);
+          } else {
+            nbMatchingOperations += await analyzeKnownOperation(transaction, operationsMap, updated, currentBlockNumber);
           }
-          nbMatchingOperations++;
+        } catch (e) {
+          log.error('An error occurred while analyzing an operation :');
+          log.error(e);
         }
-      } catch (e) {
-        console.log(e)
-        console.log(transaction)
-        console.log(iface)
-        throw e;
-      } finally {
-        await createScan(currentBlockNumber);
       }
     }
   }
+  await Promise.all(new Array(10).fill(0).map(worker));
+
   log.debug(`${nbMatchingOperations} matching operations found`);
   log.debug('Fetching latest blocks and transactions done.');
   log.debug('Scanning blockchain done.');
@@ -110,11 +91,4 @@ async function createOperationsMap() {
     operationsMap.set(operation.contractAddress, [...operations, operation]);
   }
   return operationsMap;
-}
-
-function findMatchingOperation(iface, transaction, operationsMap) {
-  const parsed = iface.parseTransaction(transaction);
-  const operations = operationsMap.get(transaction.to);
-  const filtered = operations.filter(o => o.functionName === parsed.name);
-  return filtered.length ? filtered[0] : null;
 }

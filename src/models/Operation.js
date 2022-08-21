@@ -32,6 +32,10 @@ const operationSchema = Schema({
     type: String,
     required: true
   },
+  methodId: {
+    type: String,
+    required: true
+  },
   minGasUsage: {
     type: Number
   },

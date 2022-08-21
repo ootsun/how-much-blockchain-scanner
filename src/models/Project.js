@@ -23,6 +23,10 @@ const projectSchema = Schema({
   logoUrl: {
     type: String,
     required: true,
+  },
+  isERC20: {
+    type: Boolean,
+    default: false,
   }
 });
 
