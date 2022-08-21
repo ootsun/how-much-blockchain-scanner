@@ -3,7 +3,7 @@ import log from './services/logger.js';
 import {getProvider} from './ethereum/ethereumUtils.js';
 import {connectDb} from './services/connectDB.js';
 import {findAllOperations, updateOperation} from './repositories/operation-repo.js';
-import {createScan, deleteOldestScans, findLatestScan} from './repositories/scan-repo.js';
+import {createScan, findLatestScan} from './repositories/scan-repo.js';
 import {analyzeOperation} from "./services/transaction-analyzer.js";
 import {createFromTransaction} from "./services/project-factory.js";
 
@@ -46,33 +46,33 @@ async function scan() {
   const worker = async () => {
     while (true) {
       const currentBlockNumber = remainingBlocksToProcess.shift();
-      try {
-        if (!currentBlockNumber) {
-          return;
-        }
-        log.debug(`Block #${currentBlockNumber} (${currentBlockNumber - latestPreviouslyScannedBlock}/${totalBlocksToScan})`);
-        const block = await provider.getBlockWithTransactions(currentBlockNumber);
-        log.debug(`${block.transactions.length} transactions in block`);
-        for (const transaction of block.transactions) {
-          try {
-            if (!operationsMap.has(transaction.to)) {
-              await createFromTransaction(transaction, operationsMap);
-            }
-            if (operationsMap.has(transaction.to)) {
-              nbMatchingOperations += await analyzeOperation(transaction, operationsMap, updated, currentBlockNumber);
-            }
-          } catch (e) {
-            log.error('An error occurred while analyzing an operation :');
-            log.error(e);
+      if (!currentBlockNumber) {
+        return;
+      }
+      log.debug(`Block #${currentBlockNumber} (${currentBlockNumber - latestPreviouslyScannedBlock}/${totalBlocksToScan})`);
+      const block = await provider.getBlockWithTransactions(currentBlockNumber);
+      log.debug(`${block.transactions.length} transactions in block`);
+      for (const transaction of block.transactions) {
+        try {
+          if (!operationsMap.has(transaction.to)) {
+            await createFromTransaction(transaction, operationsMap);
           }
+          if (operationsMap.has(transaction.to)) {
+            nbMatchingOperations += await analyzeOperation(transaction, operationsMap, updated, currentBlockNumber);
+          }
+        } catch (e) {
+          log.error('An error occurred while analyzing an operation :');
+          log.error(e);
         }
-      } finally {
-        await createScan(currentBlockNumber);
-        await deleteOldestScans(currentBlockNumber);
       }
     }
   }
-  await Promise.all(new Array(NUMBER_OF_WORKERS).fill(0).map(worker));
+
+  try {
+    await Promise.all(new Array(NUMBER_OF_WORKERS).fill(0).map(worker));
+  } finally {
+    await createScan(lastMinedBlock);
+  }
 
   log.debug(`${nbMatchingOperations} matching operations found`);
   log.debug('Scanning blockchain done.');
