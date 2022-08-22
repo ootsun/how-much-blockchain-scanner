@@ -43,10 +43,11 @@ async function scan() {
   }
   log.debug('Fetching latest blocks and transactions done.');
 
-  const worker = async () => {
+  const worker = async (number) => {
     while (true) {
       const currentBlockNumber = remainingBlocksToProcess.shift();
       if (!currentBlockNumber) {
+        log.debug(`Worker n°${number} stopped`)
         return;
       }
       log.debug(`Block #${currentBlockNumber} (${currentBlockNumber - latestPreviouslyScannedBlock}/${totalBlocksToScan})`);
@@ -69,7 +70,8 @@ async function scan() {
   }
 
   try {
-    await Promise.all(new Array(NUMBER_OF_WORKERS).fill(0).map(worker));
+    let i = 1;
+    await Promise.all(Array.from({length:NUMBER_OF_WORKERS},()=> (i++)).map(number => worker(number)));
   } finally {
     await createScan(lastMinedBlock);
   }
