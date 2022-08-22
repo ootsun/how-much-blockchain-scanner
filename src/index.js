@@ -43,11 +43,12 @@ async function scan() {
   }
   log.debug('Fetching latest blocks and transactions done.');
 
+  let nbStoppedWorkers = 0;
   const worker = async (number) => {
     while (true) {
       const currentBlockNumber = remainingBlocksToProcess.shift();
       if (!currentBlockNumber) {
-        log.debug(`Worker n°${number} stopped`)
+        log.debug(`Worker n°${number} stopped. ${++nbStoppedWorkers}/${NUMBER_OF_WORKERS}`);
         return;
       }
       log.debug(`Block #${currentBlockNumber} (${currentBlockNumber - latestPreviouslyScannedBlock}/${totalBlocksToScan})`);
