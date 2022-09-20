@@ -23,7 +23,8 @@
     "winston": "^3.6.0"
   },
   "devDependencies": {
-    "nodemon": "^2.0.15"
+    "nodemon": "^2.0.15",
+    "prettier": "2.7.1"
   },
   "engines": {
     "node": "16.x"
