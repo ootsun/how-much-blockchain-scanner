@@ -86,9 +86,9 @@ async function scan() {
 async function processUpdatedOperations(updated) {
   log.debug('Processing collected data...')
   for (const operation of updated) {
-    operation.minGasUsage = Math.min(...operation.lastGasUsages);
-    operation.maxGasUsage = Math.max(...operation.lastGasUsages);
-    operation.averageGasUsage = Math.round(operation.lastGasUsages.reduce((a, b) => a + b, 0) / operation.lastGasUsages.length);
+    operation.minGasUsage = Math.min(...operation.lastGasUsages.map(gu => gu.value));
+    operation.maxGasUsage = Math.max(...operation.lastGasUsages.map(gu => gu.value));
+    operation.averageGasUsage = Math.round(operation.lastGasUsages.map(gu => gu.value).reduce((a, b) => a + b, 0) / operation.lastGasUsages.length);
     await updateOperation(operation);
   }
   log.debug('Processing collected data done.')

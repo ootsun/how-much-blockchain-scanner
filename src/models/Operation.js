@@ -1,5 +1,6 @@
 import pkg from 'mongoose';
-const {Schema, model} = pkg;
+
+const { Schema, model } = pkg;
 import User from './User.js';
 import Project from './Project.js';
 
@@ -9,47 +10,58 @@ const operationSchema = Schema({
   },
   createdAt: {
     type: Date,
-    default: Date.now
+    default: Date.now,
   },
   createdBy: {
     type: Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    required: true,
   },
   project: {
     type: Schema.Types.ObjectId,
     ref: 'Project',
-    required: true
+    required: true,
   },
   contractAddress: {
     type: String,
-    required: true
+    required: true,
   },
   implementationAddress: {
     type: String,
   },
   functionName: {
     type: String,
-    required: true
+    required: true,
   },
   methodId: {
     type: String,
-    required: true
+    required: true,
   },
   minGasUsage: {
-    type: Number
+    type: Number,
   },
   maxGasUsage: {
-    type: Number
+    type: Number,
   },
   averageGasUsage: {
-    type: Number
+    type: Number,
   },
   lastGasUsages: {
-    type: [Number]
+    type: [
+      {
+        txDate: {
+          type: Date,
+          default: Date.now,
+        },
+        value: Number,
+      },
+    ],
   },
 });
 
-operationSchema.index({ contractAddress: 1, functionName: 1 }, { unique: true });
+operationSchema.index(
+  { contractAddress: 1, functionName: 1 },
+  { unique: true },
+);
 
 export default model("Operation", operationSchema);

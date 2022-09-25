@@ -15,7 +15,9 @@ export const analyzeOperation = async (transaction, operationsMap, updated) => {
     if (receipt.status === 0) {
       return 0;
     }
-    operation.lastGasUsages.unshift(receipt.gasUsed.toNumber());
+    operation.lastGasUsages.unshift({
+      value: receipt.gasUsed.toNumber()
+    });
     operation.lastGasUsages.length = Math.min(operation.lastGasUsages.length, MAX_NUMBER_OF_GAS_USAGE_SAVED);
     if (!updated.includes(operation)) {
       updated.push(operation);
