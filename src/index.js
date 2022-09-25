@@ -1,27 +1,29 @@
 import 'dotenv/config';
 import log from './services/logger.js';
-import {getProvider} from './ethereum/ethereumUtils.js';
-import {connectDb} from './services/connectDB.js';
-import {findAllOperations, updateOperation} from './repositories/operation-repo.js';
-import {createScan, findLatestScan} from './repositories/scan-repo.js';
-import {analyzeOperation} from "./services/transaction-analyzer.js";
-import {createFromTransaction} from "./services/project-factory.js";
+import { getProvider } from './ethereum/ethereumUtils.js';
+import { connectDb, disconnectDb } from './services/connectDB.js';
+import {
+  findAllOperations,
+  updateOperation,
+} from './repositories/operation-repo.js';
+import { createScan, findLatestScan } from './repositories/scan-repo.js';
+import { analyzeOperation } from './services/transaction-analyzer.js';
+import { createFromTransaction } from './services/project-factory.js';
 
 const NUMBER_OF_WORKERS = Number.parseInt(process.env.NUMBER_OF_WORKERS) || 20;
 
-if (!await connectDb()) {
-  log.warn('Exiting program');
-  process.exit(0);
-}
-
 let lastMinedBlock = null;
+
 const provider = getProvider();
+await connectDb();
 
 try {
   const updated = await scan();
   await processUpdatedOperations(updated);
+  await disconnectDb();
 } catch (e) {
   log.error(e);
+  await disconnectDb();
   log.warn('Exiting program');
   process.exit(0);
 }
@@ -33,12 +35,19 @@ async function scan() {
   const operationsMap = await createOperationsMap();
   const latestScan = await findLatestScan();
   lastMinedBlock = await provider.getBlockNumber();
-  const latestPreviouslyScannedBlock = latestScan?.latestBlock || lastMinedBlock - 100;
+  const latestPreviouslyScannedBlock =
+    latestScan?.latestBlock || lastMinedBlock - 100;
   const totalBlocksToScan = lastMinedBlock - latestPreviouslyScannedBlock;
-  log.debug(`From block ${latestPreviouslyScannedBlock} to ${lastMinedBlock} (${totalBlocksToScan} blocks)`);
+  log.debug(
+    `From block ${latestPreviouslyScannedBlock} to ${lastMinedBlock} (${totalBlocksToScan} blocks)`,
+  );
   log.debug('Fetching latest blocks and transactions...');
   const remainingBlocksToProcess = [];
-  for (let currentBlockNumber = latestPreviouslyScannedBlock + 1; currentBlockNumber <= lastMinedBlock; currentBlockNumber++) {
+  for (
+    let currentBlockNumber = latestPreviouslyScannedBlock + 1;
+    currentBlockNumber <= lastMinedBlock;
+    currentBlockNumber++
+  ) {
     remainingBlocksToProcess.push(currentBlockNumber);
   }
   log.debug('Fetching latest blocks and transactions done.');
@@ -48,10 +57,16 @@ async function scan() {
     while (true) {
       const currentBlockNumber = remainingBlocksToProcess.shift();
       if (!currentBlockNumber) {
-        log.debug(`Worker n°${number} stopped. ${++nbStoppedWorkers}/${NUMBER_OF_WORKERS}`);
+        log.debug(
+          `Worker n°${number} stopped. ${++nbStoppedWorkers}/${NUMBER_OF_WORKERS}`,
+        );
         return;
       }
-      log.debug(`Block #${currentBlockNumber} (${currentBlockNumber - latestPreviouslyScannedBlock}/${totalBlocksToScan})`);
+      log.debug(
+        `Block #${currentBlockNumber} (${
+          currentBlockNumber - latestPreviouslyScannedBlock
+        }/${totalBlocksToScan})`,
+      );
       const block = await provider.getBlockWithTransactions(currentBlockNumber);
       log.debug(`${block.transactions.length} transactions in block`);
       for (const transaction of block.transactions) {
@@ -60,7 +75,12 @@ async function scan() {
             await createFromTransaction(transaction, operationsMap);
           }
           if (operationsMap.has(transaction.to)) {
-            nbMatchingOperations += await analyzeOperation(transaction, operationsMap, updated, currentBlockNumber);
+            nbMatchingOperations += await analyzeOperation(
+              transaction,
+              operationsMap,
+              updated,
+              currentBlockNumber,
+            );
           }
         } catch (e) {
           log.error('An error occurred while analyzing an operation :');
@@ -68,11 +88,15 @@ async function scan() {
         }
       }
     }
-  }
+  };
 
   try {
     let i = 1;
-    await Promise.all(Array.from({length:NUMBER_OF_WORKERS},()=> (i++)).map(number => worker(number)));
+    await Promise.all(
+      Array.from({ length: NUMBER_OF_WORKERS }, () => i++).map((number) =>
+        worker(number),
+      ),
+    );
   } finally {
     await createScan(lastMinedBlock);
   }
@@ -84,14 +108,21 @@ async function scan() {
 }
 
 async function processUpdatedOperations(updated) {
-  log.debug('Processing collected data...')
+  log.debug('Processing collected data...');
   for (const operation of updated) {
-    operation.minGasUsage = Math.min(...operation.lastGasUsages.map(gu => gu.value));
-    operation.maxGasUsage = Math.max(...operation.lastGasUsages.map(gu => gu.value));
-    operation.averageGasUsage = Math.round(operation.lastGasUsages.map(gu => gu.value).reduce((a, b) => a + b, 0) / operation.lastGasUsages.length);
+    operation.minGasUsage = Math.min(
+      ...operation.lastGasUsages.map((gu) => gu.value),
+    );
+    operation.maxGasUsage = Math.max(
+      ...operation.lastGasUsages.map((gu) => gu.value),
+    );
+    operation.averageGasUsage = Math.round(
+      operation.lastGasUsages.map((gu) => gu.value).reduce((a, b) => a + b, 0) /
+        operation.lastGasUsages.length,
+    );
     await updateOperation(operation);
   }
-  log.debug('Processing collected data done.')
+  log.debug('Processing collected data done.');
 }
 
 async function createOperationsMap() {
