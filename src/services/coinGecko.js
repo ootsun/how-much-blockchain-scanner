@@ -2,7 +2,7 @@ import CoinGecko from 'coingecko-api';
 
 let coinGeckoClient;
 
-export const getCoinGeckoClient = async () => {
+export const getCoinGeckoClient = () => {
   if (!coinGeckoClient) {
     coinGeckoClient = new CoinGecko();
   }
