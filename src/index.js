@@ -9,6 +9,7 @@ import {
 import { createScan, findLatestScan } from './repositories/scan-repo.js';
 import { analyzeOperation } from './services/transaction-analyzer.js';
 import { createFromTransaction } from './services/project-factory.js';
+import { refreshWebapp } from './services/webapp-refresher.js';
 
 const NUMBER_OF_WORKERS = Number.parseInt(process.env.NUMBER_OF_WORKERS) || 20;
 const MAX_NUMBER_OF_BLOCKS_TO_SCAN =
@@ -22,6 +23,7 @@ await connectDb();
 try {
   const updated = await scan();
   await processUpdatedOperations(updated);
+  refreshWebapp();
   await disconnectDb();
 } catch (e) {
   log.error(e);

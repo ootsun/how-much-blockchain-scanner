@@ -52,19 +52,7 @@ export const createFromTransaction = async (transaction, operationsMap) => {
     !res.data?.market_cap_rank ||
     res.data?.market_cap_rank > MIN_COINGECKO_MARKET_CAP_RANK
   ) {
-    if (!res.success) {
-      log.debug(`CoinGecko error message : ${res.message}`);
-    }
     if (!isTooManyRequestsError(res)) {
-      console.log('TO IGNORE');
-      console.log(
-        `Rejected : ${!res.success} ${
-          res.data.asset_platform_id !== 'ethereum'
-        } ${!res.data.market_cap_rank} ${
-          res.data.market_cap_rank > MIN_COINGECKO_MARKET_CAP_RANK
-        }`,
-      );
-      console.log(res);
       await createIgnoreERC20Contract(contractAddress);
     }
     return;
