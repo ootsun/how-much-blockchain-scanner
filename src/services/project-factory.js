@@ -38,7 +38,7 @@ export const createFromTransaction = async (transaction, operationsMap) => {
   let res = null;
   try {
     res = await getCoinGeckoClient().coins.fetchCoinContractInfo(
-      contractAddress,
+      contractAddress?.toLowerCase(),
     );
   } catch (e) {
     log.error('Could not get coin contract info from CoinGecko :');
@@ -50,12 +50,21 @@ export const createFromTransaction = async (transaction, operationsMap) => {
     !res.success ||
     !res.data?.image?.thumb ||
     !res.data?.market_cap_rank ||
-    !res.data?.market_cap_rank <= MIN_COINGECKO_MARKET_CAP_RANK
+    res.data?.market_cap_rank > MIN_COINGECKO_MARKET_CAP_RANK
   ) {
     if (!res.success) {
       log.debug(`CoinGecko error message : ${res.message}`);
     }
     if (!isTooManyRequestsError(res)) {
+      console.log('TO IGNORE');
+      console.log(
+        `Rejected : ${!res.success} ${
+          res.data.asset_platform_id !== 'ethereum'
+        } ${!res.data.market_cap_rank} ${
+          res.data.market_cap_rank > MIN_COINGECKO_MARKET_CAP_RANK
+        }`,
+      );
+      console.log(res);
       await createIgnoreERC20Contract(contractAddress);
     }
     return;

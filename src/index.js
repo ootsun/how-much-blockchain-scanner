@@ -11,7 +11,8 @@ import { analyzeOperation } from './services/transaction-analyzer.js';
 import { createFromTransaction } from './services/project-factory.js';
 
 const NUMBER_OF_WORKERS = Number.parseInt(process.env.NUMBER_OF_WORKERS) || 20;
-const MAX_NUMBER_OF_BLOCKS_TO_SCAN = Number.parseInt(process.env.MAX_NUMBER_OF_BLOCKS_TO_SCAN) || 100;
+const MAX_NUMBER_OF_BLOCKS_TO_SCAN =
+  Number.parseInt(process.env.MAX_NUMBER_OF_BLOCKS_TO_SCAN) || 100;
 
 let lastMinedBlock = null;
 
@@ -38,12 +39,13 @@ async function scan() {
   lastMinedBlock = await provider.getBlockNumber();
   let latestPreviouslyScannedBlock;
   let totalBlocksToScan;
-  if(latestScan?.latestBlock) {
+  if (latestScan?.latestBlock) {
     latestPreviouslyScannedBlock = latestScan.latestBlock;
     totalBlocksToScan = lastMinedBlock - latestPreviouslyScannedBlock;
   }
-  if(!totalBlocksToScan || totalBlocksToScan > MAX_NUMBER_OF_BLOCKS_TO_SCAN) {
-    latestPreviouslyScannedBlock = lastMinedBlock - MAX_NUMBER_OF_BLOCKS_TO_SCAN;
+  if (!totalBlocksToScan || totalBlocksToScan > MAX_NUMBER_OF_BLOCKS_TO_SCAN) {
+    latestPreviouslyScannedBlock =
+      lastMinedBlock - MAX_NUMBER_OF_BLOCKS_TO_SCAN;
     totalBlocksToScan = MAX_NUMBER_OF_BLOCKS_TO_SCAN;
   }
 

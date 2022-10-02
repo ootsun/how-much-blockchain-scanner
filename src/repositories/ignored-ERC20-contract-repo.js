@@ -15,7 +15,6 @@ export const isIgnored = async (contractAddress) => {
     return false;
   }
 
-  console.log(ignoredContract);
   const oneWeekAgo = new Date();
   oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
   if (ignoredContract.createdAt.getTime() < oneWeekAgo.getTime()) {
