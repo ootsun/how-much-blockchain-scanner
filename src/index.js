@@ -11,6 +11,7 @@ import { analyzeOperation } from './services/transaction-analyzer.js';
 import { createFromTransaction } from './services/project-factory.js';
 import { refreshWebapp } from './services/webapp-refresher.js';
 
+const CRON_JOB_FREQUENCY = process.env.CRON_JOB_FREQUENCY || '0 */10 * * * *';
 const NUMBER_OF_WORKERS = Number.parseInt(process.env.NUMBER_OF_WORKERS) || 20;
 const MAX_NUMBER_OF_BLOCKS_TO_SCAN =
   Number.parseInt(process.env.MAX_NUMBER_OF_BLOCKS_TO_SCAN) || 100;
@@ -20,17 +21,27 @@ let lastMinedBlock = null;
 const provider = getProvider();
 await connectDb();
 
-try {
-  const updated = await scan();
-  await processUpdatedOperations(updated);
-  refreshWebapp();
-  await disconnectDb();
-} catch (e) {
-  log.error(e);
-  await disconnectDb();
-  log.warn('Exiting program');
-  process.exit(0);
-}
+import CronJob from 'cron';
+
+new CronJob(
+  CRON_JOB_FREQUENCY,
+  async () => {
+    try {
+      const updated = await scan();
+      await processUpdatedOperations(updated);
+      refreshWebapp();
+      await disconnectDb();
+    } catch (e) {
+      log.error(e);
+      await disconnectDb();
+      log.warn('Exiting program');
+      process.exit(0);
+    }
+  },
+  null,
+  true,
+  'Europe/Brussels',
+);
 
 async function scan() {
   log.debug('Scanning blockchain...');
