@@ -10,6 +10,7 @@ import { createScan, findLatestScan } from './repositories/scan-repo.js';
 import { analyzeOperation } from './services/transaction-analyzer.js';
 import { createFromTransaction } from './services/project-factory.js';
 import { refreshWebapp } from './services/webapp-refresher.js';
+import { CronJob } from 'cron';
 
 const CRON_JOB_FREQUENCY = process.env.CRON_JOB_FREQUENCY || '0 */10 * * * *';
 const NUMBER_OF_WORKERS = Number.parseInt(process.env.NUMBER_OF_WORKERS) || 20;
@@ -21,11 +22,9 @@ let lastMinedBlock = null;
 const provider = getProvider();
 await connectDb();
 
-import CronJob from 'cron';
-
-new CronJob(
-  CRON_JOB_FREQUENCY,
-  async () => {
+new CronJob({
+  cronTime: CRON_JOB_FREQUENCY,
+  onTick: async () => {
     try {
       const updated = await scan();
       await processUpdatedOperations(updated);
@@ -38,10 +37,10 @@ new CronJob(
       process.exit(0);
     }
   },
-  null,
-  true,
-  'Europe/Brussels',
-);
+  runOnInit: true,
+  start: true,
+  timeZone: 'Europe/Paris',
+});
 
 async function scan() {
   log.debug('Scanning blockchain...');
