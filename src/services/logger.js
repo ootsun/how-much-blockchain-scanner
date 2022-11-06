@@ -1,60 +1,52 @@
+import { format } from 'logform';
 import winston from 'winston';
+import DailyRotateFile from 'winston-daily-rotate-file';
 
-const consoleLevel = process.env.LOG_CONSOLE_LEVEL;
+const LOG_LEVEL = process.env.LOG_LEVEL
+  ? process.env.LOG_LEVEL.toLowerCase()
+  : 'debug';
+const LOG_DIR = process.env.LOG_DIR || 'log';
+const NODE_ENV = process.env.NODE_ENV
+  ? process.env.NODE_ENV.toLowerCase()
+  : null;
+
+let logDir = LOG_DIR;
+if (!logDir.endsWith('/')) {
+  logDir += '/';
+}
 
 const logger = winston.createLogger({
-    transports: [
-        new winston.transports.Console({
-            level: consoleLevel,
-            format: winston.format.combine(
-                winston.format.colorize(),
-                winston.format.timestamp({
-                    format: 'HH:mm:ss:SSS',
-                }),
-                winston.format.printf(
-                    (info) =>
-                        `${info.timestamp} [${info.level}] ${info.message}`
-                )
-            ),
-        }),
-    ],
+  format: format.combine(
+    format.timestamp({
+      format: 'YYYY-MM-DD HH:mm:ss:SSS',
+    }),
+    format.errors({ stack: true }),
+    format.splat(),
+    format.json(),
+    format.printf(
+      (info) => `${info.timestamp} [${info.level}] ${info.message}`,
+    ),
+  ),
+  transports:
+    NODE_ENV !== 'production'
+      ? [new winston.transports.Console({ level: LOG_LEVEL })]
+      : [
+          new winston.transports.Console(),
+          new DailyRotateFile({
+            filename: logDir + 'error.log',
+            datePattern: 'YYYY-MM-DD',
+            maxFiles: '31d',
+            prepend: true,
+            level: 'error',
+          }),
+          new DailyRotateFile({
+            filename: logDir + 'combined.log',
+            datePattern: 'YYYY-MM-DD',
+            maxFiles: '31d',
+            prepend: true,
+            level: LOG_LEVEL,
+          }),
+        ],
 });
 
-logger.stream = {
-    write: function (message, encoding) {
-        logger.info(message);
-    },
-};
-
-function format(message) {
-    let errorLine = new Error().stack.split('\n')[3];
-    errorLine = errorLine.slice(errorLine.lastIndexOf('/') + 1);
-    if (errorLine.endsWith(')')) {
-        errorLine = errorLine.slice(0, errorLine.length - 1);
-    }
-    if(message instanceof String) {
-        return errorLine + ' : ' + message;
-    } else if(message instanceof Error){
-        return `${errorLine} : ${message.message}\n${message.stack}`;
-    } else {
-        return errorLine + ' : ' + JSON.stringify(message);
-    }
-}
-
-const log = {
-    debug: (message) => {
-        logger.debug(format(message));
-    },
-    info: (message) => {
-        logger.info(format(message));
-    },
-    warn: (message) => {
-        logger.warn(format(message));
-    },
-    error: (message) => {
-        logger.error(format(message));
-    },
-    stream: logger.stream
-}
-
-export default log;
+export default logger;
