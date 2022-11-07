@@ -29,7 +29,6 @@ new CronJob({
       const updated = await scan();
       await processUpdatedOperations(updated);
       refreshWebapp();
-      await disconnectDb();
     } catch (e) {
       log.error(e);
       await disconnectDb();
