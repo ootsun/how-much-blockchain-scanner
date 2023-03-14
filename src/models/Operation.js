@@ -24,7 +24,6 @@ const operationSchema = Schema({
   },
   contractAddress: {
     type: String,
-    required: true,
   },
   implementationAddress: {
     type: String,
@@ -35,7 +34,10 @@ const operationSchema = Schema({
   },
   methodId: {
     type: String,
-    required: true,
+  },
+  isERC20: {
+    type: Boolean,
+    default: false,
   },
   minGasUsage: {
     type: Number,
@@ -64,4 +66,4 @@ operationSchema.index(
   { unique: true },
 );
 
-export default model("Operation", operationSchema);
+export default model('Operation', operationSchema);

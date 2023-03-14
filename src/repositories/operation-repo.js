@@ -4,7 +4,7 @@ import mongoose from 'mongoose';
 const SYSTEM_USER_ID = process.env.SYSTEM_USER_ID;
 
 export async function findAllOperations() {
-  return Operation.find().populate('project', 'name');
+  return Operation.find().populate('project', 'name isERC20');
 }
 
 export async function updateOperation(operation) {
