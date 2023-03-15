@@ -24,16 +24,21 @@ const operationSchema = Schema({
   },
   contractAddress: {
     type: String,
+    required: true,
+    trim: true,
   },
   implementationAddress: {
     type: String,
+    trim: true,
   },
   functionName: {
     type: String,
+    trim: true,
     required: true,
   },
   methodId: {
     type: String,
+    trim: true,
   },
   isERC20: {
     type: Boolean,

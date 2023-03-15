@@ -1,6 +1,5 @@
 import pkg from 'mongoose';
 const {Schema, model} = pkg;
-import uniqueValidator from 'mongoose-unique-validator';
 
 const userSchema = Schema({
   id: {
@@ -13,18 +12,22 @@ const userSchema = Schema({
   address: {
     type: String,
     unique: true,
-    required: true
+    required: true,
+    trim: true,
   },
   avatarUrl: {
     type: String,
-    required: true
+    required: true,
+    trim: true,
   },
   isAdmin: {
     type: Boolean,
     default: false,
+  },
+  canEdit: {
+    type: Boolean,
+    default: false,
   }
 });
-
-userSchema.plugin(uniqueValidator);
 
 export default model("User", userSchema);
