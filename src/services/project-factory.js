@@ -5,7 +5,7 @@ import {
   getInterfaceOfContract,
 } from '../ethereum/contractUtils.js';
 import * as cloudinary from 'cloudinary';
-import { createERC20Project } from '../repositories/project-repo.js';
+import { createProject } from '../repositories/project-repo.js';
 import { createOperation } from '../repositories/operation-repo.js';
 import { getCoinGeckoClient } from './coinGecko.js';
 import {
@@ -65,7 +65,7 @@ export const createFromTransaction = async (transaction, operationsMap) => {
       return;
     }
     const logoUrl = await uploadLogo(res.data.image.thumb, res.data.name);
-    const project = await createERC20Project(
+    const project = await createProject(
       contractAddress,
       res.data.name,
       res.data.symbol,
@@ -84,6 +84,7 @@ export const createFromTransaction = async (transaction, operationsMap) => {
       implementationAddress,
       'approve',
       approveHashed,
+      true
     );
     const transferOperation = await createOperation(
       project,
@@ -91,6 +92,7 @@ export const createFromTransaction = async (transaction, operationsMap) => {
       implementationAddress,
       'transfer',
       transferHashed,
+      true
     );
     operationsMap.set(contractAddress, [approveOperation, transferOperation]);
   } catch (e) {

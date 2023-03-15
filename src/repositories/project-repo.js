@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 
 const SYSTEM_USER_ID = process.env.SYSTEM_USER_ID;
 
-export const createERC20Project = async (
+export const createProject = async (
   contractAddress,
   tokenName,
   symbol,
@@ -14,6 +14,5 @@ export const createERC20Project = async (
     name: tokenName,
     symbol: symbol,
     logoUrl: logoUrl,
-    isERC20: true,
   });
 };

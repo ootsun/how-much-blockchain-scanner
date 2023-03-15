@@ -17,6 +17,7 @@ export const createOperation = async (
   implementationAddress,
   functionName,
   methodId,
+  isERC20
 ) => {
   return Operation.create({
     createdBy: new mongoose.Types.ObjectId(SYSTEM_USER_ID),
@@ -25,5 +26,6 @@ export const createOperation = async (
     implementationAddress: implementationAddress,
     functionName: functionName,
     methodId: methodId,
+    isERC20: isERC20,
   });
 };
