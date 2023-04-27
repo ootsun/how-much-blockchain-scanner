@@ -151,7 +151,10 @@ async function createOperationsMap() {
   const operationsMap = new Map();
   for (const operation of await findAllOperations()) {
     const operations = operationsMap.get(operation.contractAddress) || [];
-    operationsMap.set(operation.contractAddress, [...operations, operation]);
+    operationsMap.set(operation.contractAddress.toLowerCase(), [
+      ...operations,
+      operation,
+    ]);
   }
   return operationsMap;
 }

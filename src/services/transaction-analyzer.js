@@ -1,7 +1,9 @@
-import {getProvider} from "../ethereum/ethereumUtils.js";
-import log from "./logger.js";
+import { getProvider } from '../ethereum/ethereumUtils.js';
+import log from './logger.js';
 
-const MAX_NUMBER_OF_GAS_USAGE_SAVED = Number.parseInt(process.env.MAX_NUMBER_OF_GAS_USAGE_SAVED);
+const MAX_NUMBER_OF_GAS_USAGE_SAVED = Number.parseInt(
+  process.env.MAX_NUMBER_OF_GAS_USAGE_SAVED,
+);
 
 const provider = getProvider();
 
@@ -16,9 +18,12 @@ export const analyzeOperation = async (transaction, operationsMap, updated) => {
       return 0;
     }
     operation.lastGasUsages.unshift({
-      value: receipt.gasUsed.toNumber()
+      value: receipt.gasUsed.toNumber(),
     });
-    operation.lastGasUsages.length = Math.min(operation.lastGasUsages.length, MAX_NUMBER_OF_GAS_USAGE_SAVED);
+    operation.lastGasUsages.length = Math.min(
+      operation.lastGasUsages.length,
+      MAX_NUMBER_OF_GAS_USAGE_SAVED,
+    );
     if (!updated.includes(operation)) {
       updated.push(operation);
     }
@@ -27,10 +32,9 @@ export const analyzeOperation = async (transaction, operationsMap, updated) => {
     log.error(transaction);
     throw e;
   }
-}
+};
 
 function findMatchingOperation(transaction, operationsMap) {
-  const operations = operationsMap.get(transaction.to);
-  const filtered = operations.filter(o => transaction.data.startsWith(o.methodId));
-  return filtered.length ? filtered[0] : null;
+  const operations = operationsMap.get(transaction.to.toLowerCase());
+  return operations.find((o) => transaction.data.startsWith(o.methodId));
 }
